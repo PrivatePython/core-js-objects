@@ -155,12 +155,29 @@ function makeWord(lettersObject) {
  *    sellTickets([25, 25, 50]) => true
  *    sellTickets([25, 100]) => false (The seller does not have enough money to give change.)
  */
-function sellTickets(/* queue */) {
-  throw new Error('Not implemented');
-  // const sellerMoney = {'25':0,'50':0,'100':0};
-  // queue.forEach((el) => {
-  //
-  // });
+function sellTickets(queue) {
+  const sellerMoney = { 25: 0, 50: 0, 100: 0 };
+  for (let i = 0; i < queue.length; i += 1) {
+    if (queue[i] === 25) {
+      sellerMoney[25] += 1;
+    } else if (queue[i] === 50 && sellerMoney[25]) {
+      sellerMoney[25] -= 1;
+      sellerMoney[50] += 1;
+    } else if (
+      queue[i] === 100 &&
+      ((sellerMoney[25] && sellerMoney[50]) || sellerMoney[25] > 2)
+    ) {
+      if (sellerMoney[25] && sellerMoney[50]) {
+        sellerMoney[50] -= 1;
+        sellerMoney[25] -= 1;
+      } else {
+        sellerMoney[25] -= 3;
+      }
+    } else {
+      return false;
+    }
+  }
+  return true;
 }
 
 /**
@@ -352,32 +369,101 @@ function group(array, keySelector, valueSelector) {
  */
 
 const cssSelectorBuilder = {
-  element(/* value */) {
-    throw new Error('Not implemented');
+  cssSelector: '',
+  queue: [],
+  sequence: [
+    'element',
+    'id',
+    'class',
+    'attr',
+    'pseudo-class',
+    'pseudo-element',
+  ],
+
+  repetitionCheck(checkValue) {
+    if (this.queue.includes(checkValue)) {
+      throw new Error(
+        `Element, id and pseudo-element should not occur more then one time inside the selector`
+      );
+    }
+  },
+  checkSequence(checkValue) {
+    for (
+      let i = this.sequence.indexOf(checkValue) + 1;
+      i < this.sequence.length;
+      i += 1
+    ) {
+      if (this.queue.includes(this.sequence[i])) {
+        throw new Error(
+          `"Selector parts should be arranged in the following order: element, id, class, attribute, pseudo-class, pseudo-element`
+        );
+      }
+    }
+  },
+  element(value) {
+    this.repetitionCheck('element');
+    this.checkSequence('element');
+    const newObj = Object.create(this);
+    newObj.cssSelector += value;
+    newObj.queue = [...this.queue];
+    newObj.queue.push('element');
+    return newObj;
   },
 
-  id(/* value */) {
-    throw new Error('Not implemented');
+  id(value) {
+    this.repetitionCheck('id');
+    this.checkSequence('id');
+    const newObj = Object.create(this);
+    newObj.cssSelector += `#${value}`;
+    newObj.queue = [...this.queue];
+    newObj.queue.push('id');
+    return newObj;
   },
 
-  class(/* value */) {
-    throw new Error('Not implemented');
+  class(value) {
+    this.checkSequence('class');
+    const newObj = Object.create(this);
+    newObj.cssSelector += `.${value}`;
+    newObj.queue = [...this.queue];
+    newObj.queue.push('class');
+    return newObj;
   },
 
-  attr(/* value */) {
-    throw new Error('Not implemented');
+  attr(value) {
+    this.checkSequence('attr');
+    const newObj = Object.create(this);
+    newObj.cssSelector += `[${value}]`;
+    newObj.queue = [...this.queue];
+    newObj.queue.push('attr');
+    return newObj;
   },
 
-  pseudoClass(/* value */) {
-    throw new Error('Not implemented');
+  pseudoClass(value) {
+    this.checkSequence('pseudo-class');
+    const newObj = Object.create(this);
+    newObj.cssSelector += `:${value}`;
+    newObj.queue = [...this.queue];
+    newObj.queue.push('pseudo-class');
+    return newObj;
   },
 
-  pseudoElement(/* value */) {
-    throw new Error('Not implemented');
+  pseudoElement(value) {
+    this.repetitionCheck('pseudo-element');
+    this.checkSequence('pseudo-element');
+    const newObj = Object.create(this);
+    newObj.cssSelector += `::${value}`;
+    newObj.queue = [...this.queue];
+    newObj.queue.push('pseudo-element');
+    return newObj;
   },
 
-  combine(/* selector1, combinator, selector2 */) {
-    throw new Error('Not implemented');
+  combine(selector1, combinator, selector2) {
+    const newObj = Object.create(this);
+    newObj.cssSelector = `${selector1.stringify()} ${combinator} ${selector2.stringify()}`;
+    return newObj;
+  },
+  stringify() {
+    return this.cssSelector;
   },
 };
 
